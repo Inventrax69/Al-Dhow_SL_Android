@@ -1617,10 +1617,8 @@ public class GoodsInFragment extends Fragment implements View.OnClickListener, B
                                         } else {
 
                                             isRsnScanned=true;
-
                                             cvScanSku.setCardBackgroundColor(getResources().getColor(R.color.white));
                                             ivScanSku.setImageResource(R.drawable.check);
-
                                             soundUtils.alertWarning(getActivity(), getContext());
                                             DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0073);
                                         }
@@ -1669,7 +1667,6 @@ public class GoodsInFragment extends Fragment implements View.OnClickListener, B
     }
 
     public void ValidateRSNAndReceive() {
-
 
         if (!etSerial.getText().toString().isEmpty()) {
             if (!etQty.getText().toString().equals("1")) {

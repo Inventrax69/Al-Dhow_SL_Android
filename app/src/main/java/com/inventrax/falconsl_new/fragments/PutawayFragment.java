@@ -392,7 +392,7 @@ public class PutawayFragment extends Fragment implements View.OnClickListener, B
 
             case R.id.btnPutaway:
 
-                if (SKU != null && SKU != "" && SKU.equalsIgnoreCase(lblSKU.getText().toString())) {
+                if (SKU != null && !SKU.equals("") && SKU.equalsIgnoreCase(lblSKU.getText().toString())) {
 
                     if (!etQty.getText().toString().equals("0") && !etQty.getText().toString().isEmpty()) {
                         // Inserting Item into the location

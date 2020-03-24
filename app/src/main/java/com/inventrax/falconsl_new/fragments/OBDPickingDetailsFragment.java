@@ -160,13 +160,10 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
         lblMRP = (TextView) rootView.findViewById(R.id.lblMRP);
 
         etPallet = (EditText) rootView.findViewById(R.id.etPallet);
-
         etPalletTo = (EditText) rootView.findViewById(R.id.etPalletTo);
-
 
         rvPickList = (RecyclerView) rootView.findViewById(R.id.rvPickList);
         rvPickList.setHasFixedSize(true);
-
 
         linearLayoutManager = new LinearLayoutManager(getContext());
 

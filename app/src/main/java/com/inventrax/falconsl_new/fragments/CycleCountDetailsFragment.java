@@ -13,6 +13,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,6 +42,7 @@ import com.inventrax.falconsl_new.common.constants.EndpointConstants;
 import com.inventrax.falconsl_new.common.constants.ErrorMessages;
 import com.inventrax.falconsl_new.interfaces.ApiInterface;
 import com.inventrax.falconsl_new.pojos.CycleCountDTO;
+import com.inventrax.falconsl_new.pojos.ScanDTO;
 import com.inventrax.falconsl_new.pojos.WMSCoreMessage;
 import com.inventrax.falconsl_new.pojos.WMSExceptionMessage;
 import com.inventrax.falconsl_new.services.RestService;
@@ -103,6 +105,10 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
     private LinearLayoutManager linearLayoutManager;
 
+    boolean isValidLocation = false;
+    boolean isPalletScanned = false;
+    boolean isRSNScanned = false;
+
     // Cipher Barcode Scanner
     private final BroadcastReceiver myDataReceiver = new BroadcastReceiver() {
         @Override
@@ -113,9 +119,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         }
     };
 
-    public CycleCountDetailsFragment() {
-
-    }
+    public CycleCountDetailsFragment() { }
 
     @Nullable
     @Override
@@ -209,10 +213,9 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         btnCloseExport.setOnClickListener(this);
         btnConfirm.setOnClickListener(this);
         btnExportCC.setOnClickListener(this);
-
+        cvScanContainer.setOnClickListener(this);
 
         if (scanType.equals("Auto")) {
-
             btnConfirm.setEnabled(false);
             btnConfirm.setTextColor(getResources().getColor(R.color.black));
             btnConfirm.setBackgroundResource(R.drawable.button_hide);
@@ -249,9 +252,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
             case R.id.btnBinComplete:
 
                 if (!etLocation.getText().toString().isEmpty()) {
-
                     releaseCycleCountLocation();
-
                 } else {
                     common.showUserDefinedAlertType(errorMessages.EMC_0007, getActivity(), getContext(), "Error");
                     return;
@@ -261,10 +262,8 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
             case R.id.btnConfirm:
 
-                if (materialCode != "") {
-
+                if (!materialCode.equals("")) {
                     upsertCycleCount();
-
                 } else {
                     common.showUserDefinedAlertType(errorMessages.EMC_0065, getActivity(), getContext(), "Error");
                     return;
@@ -275,11 +274,15 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
             case R.id.btnCloseExport:
                 rlCC.setVisibility(View.VISIBLE);
                 rlCCExport.setVisibility(View.GONE);
-
                 break;
 
             case R.id.btnClear:
                 clearFields();
+                break;
+            case R.id.cvScanContainer:
+                isPalletScanned=true;
+                cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
+                ivScanContainer.setImageResource(R.drawable.check);
                 break;
 
             case R.id.btnExportCC:
@@ -375,17 +378,30 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
             if (scannedData != null && !common.isPopupActive) {
 
-                if (ScanValidator.isLocationScanned(scannedData)) {
+                if(!isValidLocation){
+                    ValidateLocation(scannedData);
+                }else{
+                    if(!isPalletScanned){
+                        ValidatePallet(scannedData);
+                    }else{
+                        ValiDateMaterial(scannedData);
+                    }
+                }
+
+
+
+/*                if (ScanValidator.isLocationScanned(scannedData)) {
 
                     etLocation.setText(scannedData);
 
                     isBlockedLocation();
+
                     return;
 
-                } else if (ScanValidator.isItemScanned(scannedData) && !etLocation.getText().toString().isEmpty()) {
+                }
+                else if (ScanValidator.isItemScanned(scannedData) && !etLocation.getText().toString().isEmpty()) {
                     if (etLocation.getText().toString().equals(String.valueOf(R.string.hintLocation))) {
                         common.showUserDefinedAlertType(errorMessages.EMC_0007, getActivity(), getContext(), "Error");
-
                     } else {
 
                         materialCode = scannedData.split("[|]")[0];
@@ -407,7 +423,8 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                     }
 
 
-                } else if (ScanValidator.isContainerScanned(scannedData)) {
+                }
+                else if (ScanValidator.isContainerScanned(scannedData)) {
 
                     if (etLocation.getText().toString().isEmpty()) {
                         common.showUserDefinedAlertType(errorMessages.EMC_0007, getActivity(), getContext(), "Error");
@@ -419,7 +436,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
                         return;
                     }
-                }
+                }*/
             }
         }
     }
@@ -482,7 +499,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                                         etContainer.setText("");
                                         cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
                                         ivScanContainer.setImageResource(R.drawable.invalid_cross);
-
+                                        isPalletScanned=false;
                                     ProgressDialogUtils.closeProgressDialog();
                                     common.showAlertType(owmsExceptionMessage, getActivity(), getContext());
                                     return;
@@ -502,7 +519,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
                                     dto = new CycleCountDTO(_lResult.get(i).entrySet());
                                     if (dto.getResult().equals("1")) {
-
+                                        isPalletScanned=true;
                                         cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
                                         ivScanContainer.setImageResource(R.drawable.check);
                                     }
@@ -556,7 +573,6 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
             cycleCountDTO.setTenantId(tenantId);
             message.setEntityObject(cycleCountDTO);
 
-
             Call<String> call = null;
             ApiInterface apiService =
                     RestService.getClient().create(ApiInterface.class);
@@ -607,7 +623,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                                 }
 
                                 etLocation.setText("");
-
+                                isValidLocation=false;
                                 cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
                                 ivScanLocation.setImageResource(R.drawable.invalid_cross);
 
@@ -631,19 +647,15 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                                 for (int i = 0; i < lstDto.size(); i++) {
 
                                    if (lstDto.get(i).getResult().equals("-1")) {
-
+                                       isValidLocation=true;
                                         cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
                                         ivScanLocation.setImageResource(R.drawable.check);
-
                                         return;
-
                                     } else {
-
+                                       isValidLocation=false;
                                         etLocation.setText("");
-
                                         cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
                                         ivScanLocation.setImageResource(R.drawable.warning_img);
-
                                         common.showUserDefinedAlertType(lstDto.get(i).getResult(), getActivity(), getContext(), "Error");
                                         return;
                                     }
@@ -764,6 +776,8 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
                                 lblScannedSku.setText("");
 
+                                isRSNScanned=false;
+
                                 ProgressDialogUtils.closeProgressDialog();
                                 common.showAlertType(owmsExceptionMessage, getActivity(), getContext());
                             } else {
@@ -784,7 +798,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                                 for (int i = 0; i < lstDto.size(); i++) {
 
                                     if (lstDto.get(i).getResult().equals("1")) {
-
+                                        isRSNScanned=true;
                                         cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.white));
                                         ivScanSKU.setImageResource(R.drawable.check);
 
@@ -1311,6 +1325,10 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
         rvPendingCC.setAdapter(null);
 
+        isValidLocation = false;
+        isPalletScanned = false;
+        isRSNScanned = false;
+
     }
 
     public void blockLocationForCycleCount() {
@@ -1457,8 +1475,6 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         }
     }
 
-
-
     // sending exception to the database
     public void logException() {
         try {
@@ -1578,7 +1594,6 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         }
     }
 
-
     @Override
     public void onPause() {
         super.onPause();
@@ -1608,7 +1623,6 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(getString(R.string.title_activity_cycle_count));
     }
 
-
     @Override
     public void onDestroyView() {
 
@@ -1628,6 +1642,397 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
         getActivity().unregisterReceiver(this.myDataReceiver);
         super.onDestroyView();
 
+    }
+
+    public void ValiDateMaterial(final String scannedData) {
+        try {
+
+            WMSCoreMessage message = new WMSCoreMessage();
+            message = common.SetAuthentication(EndpointConstants.ScanDTO, getContext());
+            ScanDTO scanDTO = new ScanDTO();
+            scanDTO.setUserID(userId);
+            scanDTO.setAccountID(accountId);
+            scanDTO.setTenantID(String.valueOf(tenantId));
+            scanDTO.setWarehouseID(String.valueOf(warehouseId));
+            scanDTO.setScanInput(scannedData);
+            //  scanDTO.setInboundID(inboundId);
+            //inboundDTO.setIsOutbound("0");
+            message.setEntityObject(scanDTO);
+
+            Log.v("ABCDE",new Gson().toJson(message));
+
+            Call<String> call = null;
+            ApiInterface apiService = RestService.getClient().create(ApiInterface.class);
+
+            try {
+                //Checking for Internet Connectivity
+                // if (NetworkUtils.isInternetAvailable()) {
+                // Calling the Interface method
+                call = apiService.ValiDateMaterial(message);
+                ProgressDialogUtils.showProgressDialog("Please Wait");
+                // } else {
+                // DialogUtils.showAlertDialog(getActivity(), "Please enable internet");
+                // return;
+                // }
+
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_01", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+            }
+            try {
+                //Getting response from the method
+                call.enqueue(new Callback<String>() {
+
+                    @Override
+                    public void onResponse(Call<String> call, Response<String> response) {
+                        core = gson.fromJson(response.body().toString(), WMSCoreMessage.class);
+
+                        if ((core.getType().toString().equals("Exception"))) {
+                            List<LinkedTreeMap<?, ?>> _lExceptions = new ArrayList<LinkedTreeMap<?, ?>>();
+                            _lExceptions = (List<LinkedTreeMap<?, ?>>) core.getEntityObject();
+
+                            WMSExceptionMessage owmsExceptionMessage = null;
+                            for (int i = 0; i < _lExceptions.size(); i++) {
+
+                                owmsExceptionMessage = new WMSExceptionMessage(_lExceptions.get(i).entrySet());
+                            }
+                            isRSNScanned=false;
+                            cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.skuColor));
+                            ivScanSKU.setImageResource(R.drawable.fullscreen_img);
+                            ProgressDialogUtils.closeProgressDialog();
+                            common.showAlertType(owmsExceptionMessage, getActivity(), getContext());
+                        } else {
+                            LinkedTreeMap<?, ?>_lResult = new LinkedTreeMap<>();
+                            _lResult = (LinkedTreeMap<?, ?>) core.getEntityObject();
+
+                            Log.v("ABCDE",new Gson().toJson(_lResult));
+
+                            ScanDTO scanDTO1=new ScanDTO(_lResult.entrySet());
+                            ProgressDialogUtils.closeProgressDialog();
+                            if(scanDTO1!=null){
+                                if(scanDTO1.getScanResult()){
+
+                                /* ----For RSN reference----
+                                    0 Sku|1 BatchNo|2 SerialNO|3 MFGDate|4 EXpDate|5 ProjectRefNO|6 Kit Id|7 line No|8 MRP ---- For SKU with 9 MSP's
+
+                                    0 Sku|1 BatchNo|2 SerialNO|3 KitId|4 lineNo  ---- For SKU with 5 MSP's   *//*
+                                    // Eg. : ToyCar|1|bat1|ser123|12/2/2018|12/2/2019|0|001*/
+
+                                    cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.skuColor));
+                                    ivScanSKU.setImageResource(R.drawable.fullscreen_img);
+
+                                    /*    if (scannedData.split("[|]").length != 5) {*/
+
+                                    /*Materialcode = scanDTO1.getSkuCode();
+                                    etBatch.setText(scanDTO1.getBatch());
+                                    etSerial.setText(scanDTO1.getSerialNumber());
+                                    etMfgDate.setText(scanDTO1.getMfgDate());
+                                    etExpDate.setText(scanDTO1.getExpDate());
+                                    etPrjRef.setText(scanDTO1.getPrjRef());
+                                    etKidID.setText(scanDTO1.getKitID());
+                                    etMRP.setText(scanDTO1.getMrp());
+                                    lineNo = scanDTO1.getLineNumber();*/
+                                    //supplierInvoiceDetailsId = scanDTO1.getSupplierInvoiceDetailsID();
+
+                                    materialCode = scanDTO1.getSkuCode();
+
+                                    lblScannedSku.setText(materialCode);
+                                    etBatch.setText(scanDTO1.getBatch());
+                                    etSerial.setText(scanDTO1.getSerialNumber());
+                                    etMfgDate.setText(scanDTO1.getMfgDate());
+                                    etExpDate.setText(scanDTO1.getExpDate());
+                                    etProjectRef.setText(scanDTO1.getPrjRef());
+                                    etCCMRP.setText(scanDTO1.getMrp());
+
+                                    isRSNScanned = true;
+                                    cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanSKU.setImageResource(R.drawable.check);
+
+                                    checkMaterialAvailablilty();
+
+                                } else{
+                                    isRSNScanned = false;
+                                    cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanSKU.setImageResource(R.drawable.warning_img);
+                                    common.showUserDefinedAlertType(errorMessages.EMC_0009, getActivity(), getContext(), "Warning");
+                                }
+                            }else{
+                                common.showUserDefinedAlertType("Error while getting data", getActivity(), getContext(), "Error");
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<String> call, Throwable throwable) {
+                        //Toast.makeText(LoginActivity.this, throwable.toString(), Toast.LENGTH_LONG).show();
+                        ProgressDialogUtils.closeProgressDialog();
+                        DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+                    }
+                });
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_02", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+            }
+        } catch (Exception ex) {
+            try {
+                exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_03", getActivity());
+                logException();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            ProgressDialogUtils.closeProgressDialog();
+            DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+        }
+    }
+
+    public void ValidateLocation(final String scannedData) {
+
+        try {
+
+            WMSCoreMessage message = new WMSCoreMessage();
+            message = common.SetAuthentication(EndpointConstants.ScanDTO, getContext());
+            ScanDTO scanDTO = new ScanDTO();
+            scanDTO.setUserID(userId);
+            scanDTO.setAccountID(accountId);
+            scanDTO.setTenantID(String.valueOf(tenantId));
+            scanDTO.setWarehouseID(String.valueOf(warehouseId));
+            scanDTO.setScanInput(scannedData);
+            //   scanDTO.setInboundID(inboundId);
+            // inboundDTO.setIsOutbound("0");
+            message.setEntityObject(scanDTO);
+
+
+            Call<String> call = null;
+            ApiInterface apiService = RestService.getClient().create(ApiInterface.class);
+
+            try {
+                //Checking for Internet Connectivity
+                // if (NetworkUtils.isInternetAvailable()) {
+                // Calling the Interface method
+                call = apiService.ValidateLocation(message);
+                ProgressDialogUtils.showProgressDialog("Please Wait");
+                // } else {
+                // DialogUtils.showAlertDialog(getActivity(), "Please enable internet");
+                // return;
+                // }
+
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_01", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+            }
+            try {
+                //Getting response from the method
+                call.enqueue(new Callback<String>() {
+
+                    @Override
+                    public void onResponse(Call<String> call, Response<String> response) {
+                        core = gson.fromJson(response.body().toString(), WMSCoreMessage.class);
+
+                        if ((core.getType().toString().equals("Exception"))) {
+                            List<LinkedTreeMap<?, ?>> _lExceptions = new ArrayList<LinkedTreeMap<?, ?>>();
+                            _lExceptions = (List<LinkedTreeMap<?, ?>>) core.getEntityObject();
+
+                            WMSExceptionMessage owmsExceptionMessage = null;
+                            for (int i = 0; i < _lExceptions.size(); i++) {
+
+                                owmsExceptionMessage = new WMSExceptionMessage(_lExceptions.get(i).entrySet());
+                            }
+
+                            isValidLocation=false;
+                            cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
+                            ivScanLocation.setImageResource(R.drawable.invalid_cross);
+                            ProgressDialogUtils.closeProgressDialog();
+                            common.showAlertType(owmsExceptionMessage, getActivity(), getContext());
+                        } else {
+                            LinkedTreeMap<?, ?>_lResult = new LinkedTreeMap<>();
+                            _lResult = (LinkedTreeMap<?, ?>) core.getEntityObject();
+
+                            ScanDTO scanDTO1=new ScanDTO(_lResult.entrySet());
+
+                            if(scanDTO1!=null){
+                                if(scanDTO1.getScanResult()){
+                                    isValidLocation=true;
+                                    cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanLocation.setImageResource(R.drawable.check);
+                                    etLocation.setText(scannedData);
+                                    isBlockedLocation();
+                                } else{
+                                    isValidLocation=false;
+                                    cvScanLocation.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanLocation.setImageResource(R.drawable.warning_img);
+                                    common.showUserDefinedAlertType(errorMessages.EMC_0010, getActivity(), getContext(), "Warning");
+                                }
+                            }else{
+                                common.showUserDefinedAlertType("Error while getting data", getActivity(), getContext(), "Error");
+                            }
+                            ProgressDialogUtils.closeProgressDialog();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<String> call, Throwable throwable) {
+                        //Toast.makeText(LoginActivity.this, throwable.toString(), Toast.LENGTH_LONG).show();
+                        ProgressDialogUtils.closeProgressDialog();
+                        DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+                    }
+                });
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_02", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+            }
+        } catch (Exception ex) {
+            try {
+                exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_03", getActivity());
+                logException();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            ProgressDialogUtils.closeProgressDialog();
+            DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+        }
+    }
+
+    public void ValidatePallet(final String scannedData) {
+        try {
+
+            WMSCoreMessage message = new WMSCoreMessage();
+            message = common.SetAuthentication(EndpointConstants.ScanDTO, getContext());
+            ScanDTO scanDTO = new ScanDTO();
+            scanDTO.setUserID(userId);
+            scanDTO.setAccountID(accountId);
+            scanDTO.setTenantID(String.valueOf(tenantId));
+            scanDTO.setWarehouseID(String.valueOf(warehouseId));
+            scanDTO.setScanInput(scannedData);
+            // scanDTO.setInboundID(inboundId);
+            //inboundDTO.setIsOutbound("0");
+            message.setEntityObject(scanDTO);
+
+
+            Call<String> call = null;
+            ApiInterface apiService = RestService.getClient().create(ApiInterface.class);
+
+            try {
+                //Checking for Internet Connectivity
+                // if (NetworkUtils.isInternetAvailable()) {
+                // Calling the Interface method
+                call = apiService.ValidatePallet(message);
+                ProgressDialogUtils.showProgressDialog("Please Wait");
+                // } else {
+                // DialogUtils.showAlertDialog(getActivity(), "Please enable internet");
+                // return;
+                // }
+
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_01", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+            }
+            try {
+                //Getting response from the method
+                call.enqueue(new Callback<String>() {
+
+                    @Override
+                    public void onResponse(Call<String> call, Response<String> response) {
+                        core = gson.fromJson(response.body().toString(), WMSCoreMessage.class);
+
+                        if ((core.getType().toString().equals("Exception"))) {
+                            List<LinkedTreeMap<?, ?>> _lExceptions = new ArrayList<LinkedTreeMap<?, ?>>();
+                            _lExceptions = (List<LinkedTreeMap<?, ?>>) core.getEntityObject();
+
+                            WMSExceptionMessage owmsExceptionMessage = null;
+                            for (int i = 0; i < _lExceptions.size(); i++) {
+
+                                owmsExceptionMessage = new WMSExceptionMessage(_lExceptions.get(i).entrySet());
+                            }
+
+                            isPalletScanned=false;
+                            cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
+                            ivScanContainer.setImageResource(R.drawable.invalid_cross);
+                            ProgressDialogUtils.closeProgressDialog();
+                            common.showAlertType(owmsExceptionMessage, getActivity(), getContext());
+                        } else {
+                            LinkedTreeMap<?, ?>_lResult = new LinkedTreeMap<>();
+                            _lResult = (LinkedTreeMap<?, ?>) core.getEntityObject();
+
+                            ScanDTO scanDTO1=new ScanDTO(_lResult.entrySet());
+                            ProgressDialogUtils.closeProgressDialog();
+                            if(scanDTO1!=null){
+                                if(scanDTO1.getScanResult()){
+                                    isPalletScanned=true;
+                                    cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanContainer.setImageResource(R.drawable.check);
+                                    etContainer.setText(scannedData);
+                                    chekPalletLocation();
+                                } else{
+                                    isPalletScanned=false;
+                                    cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
+                                    ivScanContainer.setImageResource(R.drawable.warning_img);
+                                    common.showUserDefinedAlertType(errorMessages.EMC_0009, getActivity(), getContext(), "Warning");
+                                }
+                            }else{
+                                isPalletScanned=false;
+                                common.showUserDefinedAlertType("Error while getting data", getActivity(), getContext(), "Error");
+                            }
+
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<String> call, Throwable throwable) {
+                        //Toast.makeText(LoginActivity.this, throwable.toString(), Toast.LENGTH_LONG).show();
+                        ProgressDialogUtils.closeProgressDialog();
+                        DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+                    }
+                });
+            } catch (Exception ex) {
+                try {
+                    exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_02", getActivity());
+                    logException();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ProgressDialogUtils.closeProgressDialog();
+                DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0001);
+            }
+        } catch (Exception ex) {
+            try {
+                exceptionLoggerUtils.createExceptionLog(ex.toString(), classCode, "002_03", getActivity());
+                logException();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            ProgressDialogUtils.closeProgressDialog();
+            DialogUtils.showAlertDialog(getActivity(), errorMessages.EMC_0002);
+        }
     }
 
 
