@@ -24,6 +24,8 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.SearchView;
 import com.cipherlab.barcode.GeneralString;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -112,6 +114,8 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
     SoundUtils soundUtils;
     LinearLayoutManager linearLayoutManager;
     RecyclerView rvPickList;
+    String stString="";
+    SearchView searchView;
 
 
     // Cipher Barcode Scanner
@@ -237,6 +241,24 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
                 } catch (ScannerUnavailableException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+
+        searchView = (SearchView) rootView.findViewById(R.id.searchView);
+        stString="";
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                pickListAdapter.getFilter().filter(query);
+                stString=query;
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                 pickListAdapter.getFilter().filter(newText);
+                 stString=newText;
+                return false;
             }
         });
 
@@ -999,6 +1021,8 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
         }
     }
 
+    PickListAdapter pickListAdapter;
+
     public void GetPickItemList() {
         //To get Picked item Details
         try {
@@ -1068,7 +1092,7 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
                                     // Picking suggestions after successful picking
                                     ProgressDialogUtils.closeProgressDialog();
                                     if (_lstOutboundDTO.size() > 0) {
-                                        PickListAdapter pickListAdapter = new PickListAdapter(getActivity(), _lstOutboundDTO, new PickListAdapter.OnItemClickListener() {
+                                        pickListAdapter = new PickListAdapter(getActivity(), _lstOutboundDTO, new PickListAdapter.OnItemClickListener() {
                                             @Override
                                             public void onItemClick(int pos) {
 
@@ -1109,6 +1133,7 @@ public class OBDPickingDetailsFragment extends Fragment implements View.OnClickL
                                         });
 
                                         rvPickList.setAdapter(pickListAdapter);
+                                        searchView.setQuery(stString, true);
 
                                     }else{
                                         common.showUserDefinedAlertType(errorMessages.EMC_081, getActivity(), getContext(), "Warning");

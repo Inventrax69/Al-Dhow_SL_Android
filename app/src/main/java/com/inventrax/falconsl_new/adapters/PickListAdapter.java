@@ -7,24 +7,64 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.TextView;
 
 import com.inventrax.falconsl_new.R;
 import com.inventrax.falconsl_new.pojos.CycleCountDTO;
 import com.inventrax.falconsl_new.pojos.OutbountDTO;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class PickListAdapter extends RecyclerView.Adapter {
+public class PickListAdapter extends RecyclerView.Adapter implements Filterable {
 
     private List<OutbountDTO> outbountDTOS;
+    private List<OutbountDTO> outbountDTOSflr;
     private OnItemClickListener listener;
     Context context;
 
     public PickListAdapter(Context context, List<OutbountDTO> list , OnItemClickListener mlistener) {
         this.context = context;
         this.outbountDTOS = list;
+        this.outbountDTOSflr = list;
         this.listener=mlistener;
+    }
+
+    @Override
+    public Filter getFilter() {
+        Filter filter = new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+
+                FilterResults filterResults = new FilterResults();
+                if(constraint == null || constraint.length() == 0){
+                    filterResults.count = outbountDTOS.size();
+                    filterResults.values = outbountDTOS;
+
+                }else{
+                    List<OutbountDTO> resultsModel = new ArrayList<>();
+                    String searchStr = constraint.toString().toLowerCase();
+
+                    for(OutbountDTO itemsModel:outbountDTOS){
+                        if(itemsModel.getLocation().toLowerCase().contains(searchStr)){
+                            resultsModel.add(itemsModel);
+                        }
+                        filterResults.count = resultsModel.size();
+                        filterResults.values = resultsModel;
+                    }
+                }
+                return filterResults;
+            }
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                outbountDTOSflr = (List<OutbountDTO>) results.values;
+                notifyDataSetChanged();
+            }
+        };
+        return filter;
     }
 
 
@@ -98,7 +138,7 @@ public class PickListAdapter extends RecyclerView.Adapter {
 
     @Override
     public int getItemCount() {
-        return outbountDTOS.size();
+        return outbountDTOSflr.size();
     }
 
     public interface OnItemClickListener {

@@ -250,7 +250,6 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btnBinComplete:
-
                 if (!etLocation.getText().toString().isEmpty()) {
                     releaseCycleCountLocation();
                 } else {
@@ -261,14 +260,12 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                 break;
 
             case R.id.btnConfirm:
-
                 if (!materialCode.equals("")) {
                     upsertCycleCount();
                 } else {
                     common.showUserDefinedAlertType(errorMessages.EMC_0065, getActivity(), getContext(), "Error");
                     return;
                 }
-
                 break;
 
             case R.id.btnCloseExport:
@@ -280,9 +277,15 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
                 clearFields();
                 break;
             case R.id.cvScanContainer:
-                isPalletScanned=true;
-                cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
-                ivScanContainer.setImageResource(R.drawable.check);
+                if(isPalletScanned){
+                    clearFields1();
+                }else{
+                    clearFields1();
+                    isPalletScanned=true;
+                    cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.white));
+                    ivScanContainer.setImageResource(R.drawable.check);
+                }
+
                 break;
 
             case R.id.btnExportCC:
@@ -899,8 +902,7 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
 
 
             Call<String> call = null;
-            ApiInterface apiService =
-                    RestService.getClient().create(ApiInterface.class);
+            ApiInterface apiService = RestService.getClient().create(ApiInterface.class);
 
             try {
                 //Checking for Internet Connectivity
@@ -1298,6 +1300,34 @@ public class CycleCountDetailsFragment extends Fragment implements View.OnClickL
             ProgressDialogUtils.closeProgressDialog();
             common.showUserDefinedAlertType(errorMessages.EMC_0001, getActivity(), getContext(), "Error");
         }
+    }
+
+    public void clearFields1() {
+
+
+
+        cvScanContainer.setCardBackgroundColor(getResources().getColor(R.color.palletColor));
+        ivScanContainer.setImageResource(R.drawable.fullscreen_img);
+
+        cvScanSKU.setCardBackgroundColor(getResources().getColor(R.color.skuColor));
+        ivScanSKU.setImageResource(R.drawable.fullscreen_img);
+
+        lblScannedSku.setText("");
+        materialCode = "";
+
+        etContainer.setText("");
+        etExpDate.setText("");
+        etMfgDate.setText("");
+        etSerial.setText("");
+        etBatch.setText("");
+        etProjectRef.setText("");
+        etCCQty.setText("");
+
+        rvPendingCC.setAdapter(null);
+
+        isPalletScanned = false;
+        isRSNScanned = false;
+
     }
 
     public void clearFields() {
